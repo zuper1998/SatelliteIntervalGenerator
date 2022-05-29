@@ -70,9 +70,9 @@ public class SatOrbitPropagation {
 
 
 
-        propagate(orbits,cityFrames,SimValues.initialDate,SimValues.initialDate.shiftedBy(3600),1);
+        var Graph =  propagate(orbits,cityFrames,SimValues.initialDate,SimValues.initialDate.shiftedBy(SimValues.duration),SimValues.stepT);
 
-
+        Graph.Print(satData.getName());
 
 
 
@@ -100,7 +100,7 @@ public class SatOrbitPropagation {
     }
 
 
-    public static void propagate(ArrayList<NamedOrbit> propagators, ArrayList<TopocentricFrame>  cities, AbsoluteDate start, AbsoluteDate end, double step){
+    public static IntervalGraph propagate(ArrayList<NamedOrbit> propagators, ArrayList<TopocentricFrame>  cities, AbsoluteDate start, AbsoluteDate end, double step){
         ArrayList<NamedSpacecraftState> namedSpacecraftStates= new ArrayList<>();
         int CityMatrixWidth = cities.size() * 2;
         //Since def value is 0 it will all be "false";
@@ -127,8 +127,8 @@ public class SatOrbitPropagation {
 
 
 
-            double percent = extrapDate.durationFrom(start)/end.durationFrom(start);
-            System.out.println("\r"+DisplayBar(percent) + "  "+percent+"% Done");
+            double percent = extrapDate.durationFrom(start)/end.durationFrom(start)*100;
+            System.out.print("\r"+DisplayBar(percent) + "  "+percent+"% Done");
 
             for (NamedOrbit namedOrbit : propagators){
                 namedSpacecraftStates.add(new NamedSpacecraftState(namedOrbit.name, namedOrbit.propagator.propagate(extrapDate)));
@@ -145,6 +145,7 @@ public class SatOrbitPropagation {
             namedSpacecraftStates.clear();
         }
         //TODO: return something that can be printed
+        return new IntervalGraph(visCityIntMatrix,visSatIntMatrix);
 
     }
     static String DisplayBar(double i)
@@ -165,7 +166,7 @@ public class SatOrbitPropagation {
             int y=0;
             for(NamedSpacecraftState inner : namedSpacecraftStates) {
                 double degree = FastMath.toDegrees(city.getElevation(inner.spacecraftState.getPVCoordinates().getPosition(), inner.spacecraftState.getFrame(), inner.spacecraftState.getDate()));
-                if(degree>SimValues.minSatElevation) {
+                if(degree>SimValues.minAngle) {
                     String name = String.format("%s->%s", city.getName(), inner.name);
                     String name_backwards = String.format("%s->%s", inner.name, city.getName());
 

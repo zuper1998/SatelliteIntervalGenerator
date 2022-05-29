@@ -12,7 +12,6 @@ public class Main {
                 if (SimValues.IsSim) {
                     SimValues.calc.set(new QuantumBitTransmittanceCalculator());
                     SatOrbitPropagation.Generate(child);
-                    return;
                 }
             }
         }
