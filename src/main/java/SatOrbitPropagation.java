@@ -46,7 +46,7 @@ public class SatOrbitPropagation {
         }
         final DataProvidersManager manager = DataContext.getDefault().getDataProvidersManager();
         manager.addProvider(new DirectoryCrawler(orekitData));
-        SimValues.initialDate = new AbsoluteDate(2021, 1, 1, 23, 30, 00.000, TimeScalesFactory.getUTC());
+        SimValues.initialDate = new AbsoluteDate(2021, 1, 7, 0, 0, 00.000, TimeScalesFactory.getUTC());
     }
 
     public static void Generate(File satData) {
@@ -163,10 +163,16 @@ public class SatOrbitPropagation {
     private static void CitySatVisCompute(ArrayList<TopocentricFrame> cities, double step, ArrayList<NamedSpacecraftState> namedSpacecraftStates, boolean[][] visCityMatrix, Vector<VisibilityInteval>[][] visCityIntMatrix, AbsoluteDate extrapDate) {
         int x = 0;
         for(TopocentricFrame city : cities){
+
             int y=0;
             for(NamedSpacecraftState inner : namedSpacecraftStates) {
                 double degree = FastMath.toDegrees(city.getElevation(inner.spacecraftState.getPVCoordinates().getPosition(), inner.spacecraftState.getFrame(), inner.spacecraftState.getDate()));
+
+
                 if(degree>SimValues.minAngle) {
+                    if(city.getName().contains("105")){
+                        int a =0;
+                    }
                     String name = String.format("%s->%s", city.getName(), inner.name);
                     String name_backwards = String.format("%s->%s", inner.name, city.getName());
 
