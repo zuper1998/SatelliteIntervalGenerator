@@ -13,7 +13,7 @@ public class City {
      * @param _altitude The altitude of city
      * @param _name The name of the city
      */
-    City(double _longitude, double _latitude, double _altitude, String _name){
+    City( double _latitude,double _longitude, double _altitude, String _name){
         longitude=FastMath.toRadians(_longitude);latitude=FastMath.toRadians(_latitude);altitude=_altitude;name=_name;
     }
     public String getName(){

@@ -8,6 +8,7 @@ import org.orekit.data.DataProvidersManager;
 import org.orekit.data.DirectoryCrawler;
 import org.orekit.frames.Frame;
 import org.orekit.frames.FramesFactory;
+import org.orekit.frames.ITRFVersion;
 import org.orekit.frames.TopocentricFrame;
 import org.orekit.orbits.EquinoctialOrbit;
 import org.orekit.orbits.KeplerianOrbit;
@@ -25,7 +26,7 @@ import org.orekit.time.TimeScalesFactory;
 import org.orekit.utils.Constants;
 import org.orekit.utils.IERSConventions;
 
-import java.io.File;
+import java.io.*;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
@@ -69,20 +70,15 @@ public class SatOrbitPropagation {
         }
 
 
-
-        var Graph =  propagate(orbits,cityFrames,SimValues.initialDate,SimValues.initialDate.shiftedBy(SimValues.duration),SimValues.stepT);
+        var Graph = propagate(orbits, cityFrames, SimValues.initialDate, SimValues.initialDate.shiftedBy(SimValues.duration), SimValues.stepT);
 
         Graph.Print(satData.getName());
-
-
-
-
 
 
     }
 
     private static ArrayList<TopocentricFrame> getFrameFromCities(ArrayList<City> cities) {
-        final Frame earthFrame = FramesFactory.getITRF(IERSConventions.IERS_2010, true);
+        final Frame earthFrame = FramesFactory.getITRF(ITRFVersion.ITRF_2014, IERSConventions.IERS_2010, true);
         final BodyShape earth = new OneAxisEllipsoid(Constants.WGS84_EARTH_EQUATORIAL_RADIUS,
                 Constants.WGS84_EARTH_FLATTENING,
                 earthFrame);
@@ -100,24 +96,25 @@ public class SatOrbitPropagation {
     }
 
 
-    public static IntervalGraph propagate(ArrayList<NamedOrbit> propagators, ArrayList<TopocentricFrame>  cities, AbsoluteDate start, AbsoluteDate end, double step){
-        ArrayList<NamedSpacecraftState> namedSpacecraftStates= new ArrayList<>();
+    public static IntervalGraph propagate(ArrayList<NamedOrbit> propagators, ArrayList<TopocentricFrame> cities, AbsoluteDate start, AbsoluteDate end, double step) {
+        ArrayList<NamedSpacecraftState> namedSpacecraftStates = new ArrayList<>();
         int CityMatrixWidth = cities.size() * 2;
         //Since def value is 0 it will all be "false";
-        boolean[][] visSatMatrix  = new boolean[propagators.size()][propagators.size()];
-        boolean[][] visCityMatrix  = new boolean[cities.size()][propagators.size()];
+        boolean[][] visSatMatrix = new boolean[propagators.size()][propagators.size()];
+        boolean[][] visCityMatrix = new boolean[cities.size()][propagators.size()];
+
 
         Vector<VisibilityInteval>[][] visSatIntMatrix = new Vector[propagators.size()][propagators.size()];
 
         // Double the size of city so it can go both ways
         Vector<VisibilityInteval>[][] visCityIntMatrix = new Vector[CityMatrixWidth][propagators.size()];
-        for ( int x =0;x<propagators.size();x++){
-            for ( int y =0;y<propagators.size();y++) {
+        for (int x = 0; x < propagators.size(); x++) {
+            for (int y = 0; y < propagators.size(); y++) {
                 visSatIntMatrix[x][y] = new Vector<>();
             }
         }
-        for (int x = 0; x< CityMatrixWidth; x++){
-            for ( int y =0;y<propagators.size();y++) {
+        for (int x = 0; x < CityMatrixWidth; x++) {
+            for (int y = 0; y < propagators.size(); y++) {
                 visCityIntMatrix[x][y] = new Vector<>();
             }
         }
@@ -126,16 +123,16 @@ public class SatOrbitPropagation {
              extrapDate = extrapDate.shiftedBy(step)) {
 
 
+            double percent = extrapDate.durationFrom(start) / end.durationFrom(start) * 100;
+            System.out.print("\r" + DisplayBar(percent) + "  " + percent + "% Done");
 
-            double percent = extrapDate.durationFrom(start)/end.durationFrom(start)*100;
-            System.out.print("\r"+DisplayBar(percent) + "  "+percent+"% Done");
-
-            for (NamedOrbit namedOrbit : propagators){
+            for (NamedOrbit namedOrbit : propagators) {
                 namedSpacecraftStates.add(new NamedSpacecraftState(namedOrbit.name, namedOrbit.propagator.propagate(extrapDate)));
             }
 
-            //Compute City Sat visibility
-            CitySatVisCompute(cities, step, namedSpacecraftStates, visCityMatrix, visCityIntMatrix, extrapDate);
+
+                //Compute City Sat visibility
+                CitySatVisCompute(cities, step, namedSpacecraftStates, visCityMatrix, visCityIntMatrix, extrapDate);
 
 
             //Compute interSat Visibility edge
@@ -145,11 +142,11 @@ public class SatOrbitPropagation {
             namedSpacecraftStates.clear();
         }
         //TODO: return something that can be printed
-        return new IntervalGraph(visCityIntMatrix,visSatIntMatrix);
+        return new IntervalGraph(visCityIntMatrix, visSatIntMatrix);
 
     }
-    static String DisplayBar(double i)
-    {
+
+    static String DisplayBar(double i) {
         StringBuilder sb = new StringBuilder();
 
         double x = i / 2;
@@ -160,19 +157,32 @@ public class SatOrbitPropagation {
 
         return sb.toString();
     }
+
     private static void CitySatVisCompute(ArrayList<TopocentricFrame> cities, double step, ArrayList<NamedSpacecraftState> namedSpacecraftStates, boolean[][] visCityMatrix, Vector<VisibilityInteval>[][] visCityIntMatrix, AbsoluteDate extrapDate) {
         int x = 0;
-        for(TopocentricFrame city : cities){
+        for (TopocentricFrame city : cities) {
+            //String Fname = "CSVData/CROS_LOW/"+city.getName()+".csv";
+            /*File file = new File(Fname);
 
-            int y=0;
-            for(NamedSpacecraftState inner : namedSpacecraftStates) {
+            FileWriter f = null;
+            if(!file.exists()){
+                file.createNewFile();
+            }
+            f = new FileWriter(file,true);
+
+            BufferedWriter writer = new BufferedWriter(f);
+            */
+
+
+            int y = 0;
+            for (NamedSpacecraftState inner : namedSpacecraftStates) {
+
                 double degree = FastMath.toDegrees(city.getElevation(inner.spacecraftState.getPVCoordinates().getPosition(), inner.spacecraftState.getFrame(), inner.spacecraftState.getDate()));
 
+                //writer.write(degree+";");
 
-                if(degree>SimValues.minAngle) {
-                    if(city.getName().contains("105")){
-                        int a =0;
-                    }
+                if (degree > SimValues.minAngle) {
+
                     String name = String.format("%s->%s", city.getName(), inner.name);
                     String name_backwards = String.format("%s->%s", inner.name, city.getName());
 
@@ -191,7 +201,7 @@ public class SatOrbitPropagation {
                     visCityIntMatrix[x][y].lastElement().transmittance.add(SimValues.calc.get().calculateTransmitanceCity(degree, heightAboveSea, 0) * step);
                     // <--
                     visCityIntMatrix[x + cities.size()][y].lastElement().transmittance.add(SimValues.calc.get().calculateTransmitanceCity(degree, heightAboveSea, 2) * step);
-                } else if (visCityMatrix[x][y]){
+                } else if (visCityMatrix[x][y]) {
                     visCityMatrix[x][y] = false;
                     // -->
                     visCityIntMatrix[x][y].lastElement().end = extrapDate;
@@ -201,21 +211,27 @@ public class SatOrbitPropagation {
                 y++;
             }
             x++;
+            /*writer.write("\n");
+            writer.flush();
+            writer.close();*/
+
         }
+
+
     }
 
     private static void InterSatVisCompute(double step, ArrayList<NamedSpacecraftState> namedSpacecraftStates, boolean[][] visMatrix, Vector<VisibilityInteval>[][] visIntMatrix, AbsoluteDate extrapDate) {
         int x = 0;
-        for(NamedSpacecraftState outer : namedSpacecraftStates){
-            int y=0;
-            for(NamedSpacecraftState inner : namedSpacecraftStates){
-                if(outer==inner) continue;
-                if(checkInterSatVis(inner.spacecraftState,outer.spacecraftState)){
+        for (NamedSpacecraftState outer : namedSpacecraftStates) {
+            int y = 0;
+            for (NamedSpacecraftState inner : namedSpacecraftStates) {
+                if (outer == inner) continue;
+                if (checkInterSatVis(inner.spacecraftState, outer.spacecraftState)) {
                     //Visible
-                    String name = String.format("%s->%s",outer.name,inner.name);
+                    String name = String.format("%s->%s", outer.name, inner.name);
                     //Was it visible before
-                    if(!visMatrix[x][y]){
-                        visIntMatrix[x][y].add(new VisibilityInteval(name, extrapDate, extrapDate,new ArrayList<>()));
+                    if (!visMatrix[x][y]) {
+                        visIntMatrix[x][y].add(new VisibilityInteval(name, extrapDate, extrapDate, new ArrayList<>()));
                         visMatrix[x][y] = true;
                     }
                     Vector3D posOuter = outer.spacecraftState.getPVCoordinates().getPosition();
@@ -225,7 +241,7 @@ public class SatOrbitPropagation {
 
                 } else {
                     //Not visible
-                    if(visMatrix[x][y]){
+                    if (visMatrix[x][y]) {
                         visIntMatrix[x][y].lastElement().end = extrapDate.shiftedBy(-step);
                         visMatrix[x][y] = false;
                     }
@@ -239,7 +255,7 @@ public class SatOrbitPropagation {
         }
     }
 
-    public static boolean checkInterSatVis(SpacecraftState inner, SpacecraftState outer){
+    public static boolean checkInterSatVis(SpacecraftState inner, SpacecraftState outer) {
         //Position in J2000 in meters
         Vector3D pos_outer = outer.getOrbit().getPVCoordinates().getPosition();
         Vector3D pos_inner = inner.getOrbit().getPVCoordinates().getPosition();
@@ -250,6 +266,7 @@ public class SatOrbitPropagation {
 
         return tmp > ((6371 + SimValues.minSatElevation) * 1000);
     }
+
     //https://math.stackexchange.com/questions/2193720/find-a-point-on-a-line-segment-which-is-the-closest-to-other-point-not-on-the-li
     private static Vector3D getClosestP(Vector3D A, Vector3D B, Vector3D P) {
         Vector3D v = B.subtract(A);

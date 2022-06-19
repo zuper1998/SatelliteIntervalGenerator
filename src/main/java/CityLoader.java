@@ -12,7 +12,7 @@ public class CityLoader {
         try {
             br = new BufferedReader(new FileReader(f));
             String s;
-            // Setup: LON|LAT|ALT|NAME
+            // Setup: LAT|LON|ALT|NAME
             while ((s = br.readLine()) != null) {
                 StringTokenizer st = new StringTokenizer(s, "|");
                 cities.add(new City( Double.parseDouble(st.nextToken()),Double.parseDouble(st.nextToken()),Double.parseDouble(st.nextToken()),st.nextToken()));
